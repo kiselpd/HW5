@@ -6,9 +6,7 @@
 
 using namespace std;
 
-
 const double INF = numeric_limits<double>::infinity();
-
 
 struct EDGES
 {
@@ -16,8 +14,6 @@ struct EDGES
     int second_top;
     double edge;
 };
-
-
 
 class Graph
 {
@@ -30,13 +26,14 @@ public:
     {
         cout << "Enter a weighted oriented graph in the format \"0->1 23\" " << endl;
         string str;
-        int minus = 1, index = 0, check_pow = 0, pow = 10, sum_top = 0;;
+        int minus = 1, index = 0, check_pow = 0, pow = 10;
         double number = 0;
+        vector <int> name_top;
         e.resize(index+1);
         getline(cin, str);
         while (!str.empty())
         {
-            for (int i = 0; i < str.length(); i++)
+            for (long unsigned int i = 0; i < str.length(); i++)
             {
                 if ((str[i] >= '0') && (str[i] <= '9'))
                 {
@@ -54,6 +51,9 @@ public:
                 {
                     minus = -1;
                 }
+                if ((str[i] == '-') && (str[i+1] == '>'))
+                {
+                    sum_top = this->NewSumTop(name_top, number);
                     e[index].first_top = number * minus;
                     number = 0;
                     minus = 1;
@@ -61,6 +61,7 @@ public:
                 }
                 if (str[i] == ' ')
                 {
+                    sum_top = this->NewSumTop(name_top, number);
                     e[index].second_top = number * minus;
                     number = 0;
                     minus = 1;
@@ -99,17 +100,18 @@ public:
         cout << sum_edge << endl << sum_top << endl;
     }
 
-    /*int SumTop(double number)
+    int NewSumTop(vector<int>& vect, int name_top)
     {
-        for (int i = 0; i < sum_edge; i++)
+        int error = 0;
+        for (long unsigned int i = 0; i < vect.size(); i++)
         {
-            if ((number == e[i].first_top) || (number == e[i].second_top))
-            {
-                return 0;
-            }
+            if (name_top == vect[i])
+                return vect.size();
         }
-        return 1;
-    }*/
+        if (!error)
+            vect.push_back(name_top);
+        return vect.size();
+    }
 
     void GraphDotTopEdge()
     {
@@ -129,8 +131,29 @@ public:
         system("dot graph.dot -Tpng -o graph.png");
     }
 
+    void GraphDotTopEdge(string name_file)
+    {
+        string str = "dot " + name_file + " -Tpng -o " + name_file; 
+        str = str.substr(0, str.length() - 3);
+        str = str + "png";
+        const char* command = str.c_str();
+        ofstream outf(name_file);
+        if (!outf)
+        {
+            cout << "Uh oh, Test.txt could not be opened for writing!" << endl;
+            exit(1);
+        }
 
-    /*void FordBellman(int start_top)
+        outf << "digraph new{" << endl;
+        for (int i = 0; i < sum_edge; i++)
+        {
+            outf << e[i].first_top << "->" << e[i].second_top << "[label = " << e[i].edge << "]" << endl;
+        }
+        outf << "}" << endl;
+        system(command);
+    }
+
+    void FordBellman(int start_top)
     {
         double dis[sum_top];
      
@@ -146,15 +169,9 @@ public:
                 if ((dis[e[j].first_top] + e[j].edge < dis[e[j].second_top]))
                 {
                     dis[e[j].second_top] = dis[e[j].first_top] + e[j].edge;
-                    //cout << e[j].second_top << " ";
-                }
-                if (dis[e[j].second_top] + e[j].edge < dis[e[j].first_top])
-                {
-                    dis[e[j].first_top] = dis[e[j].second_top] + e[j].edge;
-                    //cout << e[j].second_top << " ";
                 }
             }
-            cout << endl;
+            //cout << endl;
         }
 
         for (int i = 0; i < sum_edge; i++) {
@@ -177,26 +194,15 @@ public:
         }
     
     
-    }*/
+    }
 };
 
 int main()
 {
-    /*Matrix M;
-
-    if (M.ErrorMatrix())
-    {
-        cout << "Try again!" << endl;
-        return 0;
-    }
-    else
-    {
-        M.PrintMatrix();
-    }
-    */
     Graph G;
     G.PrintGraph();
-    //G.FordBellman(1);
-    G.GraphDotTopEdge();
+    string file = "graphbell.dot";
+    G.GraphDotTopEdge(file);
+    G.FordBellman(0);
     return 0;
 }
