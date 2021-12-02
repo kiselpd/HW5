@@ -21,6 +21,7 @@ private:
     int sum_edge;
     vector <EDGES> e;
     int sum_top;
+    vector <double> name_top;
 public:
     Graph()
     {
@@ -28,7 +29,6 @@ public:
         string str;
         int minus = 1, index = 0, check_pow = 0, pow = 10;
         double number = 0;
-        vector <int> name_top;
         e.resize(index+1);
         getline(cin, str);
         while (!str.empty())
@@ -53,16 +53,14 @@ public:
                 }
                 if ((str[i] == '-') && (str[i+1] == '>'))
                 {
-                    sum_top = this->NewSumTop(name_top, number);
-                    e[index].first_top = number * minus;
+                    e[index].first_top = this->NewTop(name_top, number * minus);
                     number = 0;
                     minus = 1;
                     check_pow = 0;
                 }
                 if (str[i] == ' ')
                 {
-                    sum_top = this->NewSumTop(name_top, number);
-                    e[index].second_top = number * minus;
+                    e[index].second_top = this->NewTop(name_top, number * minus);
                     number = 0;
                     minus = 1;
                     check_pow = 0;
@@ -84,11 +82,13 @@ public:
         }
 
         sum_edge = index;
+        sum_top = name_top.size();
     }
 
     ~Graph()
     {
         e.clear();
+        name_top.clear();
     }
 
     void PrintGraph()
@@ -98,19 +98,21 @@ public:
             cout << "Weight:" << e[i].edge << " First_top:" << e[i].first_top << " Second_top:" << e[i].second_top << endl;
         }
         cout << sum_edge << endl << sum_top << endl;
+        for (int i = 0; i < sum_top; i++)
+        {
+            cout << "All names of top: " << name_top[i] << " ";
+        }
     }
 
-    int NewSumTop(vector<int>& vect, int name_top)
+    double NewTop(vector<double> &vect, double name)
     {
-        int error = 0;
         for (long unsigned int i = 0; i < vect.size(); i++)
         {
-            if (name_top == vect[i])
-                return vect.size();
+            if (name == vect[i])
+                return i;
         }
-        if (!error)
-            vect.push_back(name_top);
-        return vect.size();
+        vect.push_back(name);
+        return (vect.size() - 1);
     }
 
     void GraphDotTopEdge()
@@ -131,12 +133,19 @@ public:
         system("dot graph.dot -Tpng -o graph.png");
     }
 
-    void GraphDotTopEdge(string name_file)
+    void GraphMakeDot(string name_file)
     {
-        string str = "dot " + name_file + " -Tpng -o " + name_file; 
-        str = str.substr(0, str.length() - 3);
-        str = str + "png";
-        const char* command = str.c_str();
+        string str1 = "dot " + name_file + " -Tpng -o " + name_file; 
+        str1 = str1.substr(0, str1.length() - 3);
+        str1 = str1 + "png";
+
+        string str2 = "explorer.exe " + name_file;
+        str2 = str2.substr(0, str2.length() - 3);
+        str2 = str2 + "png";
+
+        const char* command1 = str1.c_str();
+        const char* command2 = str2.c_str();
+
         ofstream outf(name_file);
         if (!outf)
         {
@@ -147,22 +156,29 @@ public:
         outf << "digraph new{" << endl;
         for (int i = 0; i < sum_edge; i++)
         {
-            outf << e[i].first_top << "->" << e[i].second_top << "[label = " << e[i].edge << "]" << endl;
+            outf << name_top[e[i].first_top] << "->" << name_top[e[i].second_top]<< "[label = " << e[i].edge << "]" << endl;
         }
         outf << "}" << endl;
-        system(command);
+        system(command1);
+        system(command2);
     }
 
-    void FordBellman(int start_top)
+    void FordBellman(double start_top)
     {
         double dis[sum_top];
-     
+        int x;
         for (int i = 0; i < sum_top; i++)
         {
             dis[i] = INF;
         }
+       
+        for (long unsigned int i = 0; i < name_top.size(); i++)
+        {
+            if (start_top == name_top[i])
+                x = i;
+        }
 
-        dis[start_top] = 0;
+        dis[x] = 0;
 
         for (int i = 0; i < sum_top - 1; i++) {
             for (int j = 0; j < sum_edge; j++) {
@@ -171,9 +187,15 @@ public:
                     dis[e[j].second_top] = dis[e[j].first_top] + e[j].edge;
                 }
             }
-            //cout << endl;
         }
 
+        if (!(this->NegativeWeightCycle(dis)))
+            this->PrintDistance(dis, start_top);
+  
+    }
+
+    int NegativeWeightCycle(double* dis)
+    {
         for (int i = 0; i < sum_edge; i++) {
 
             int x = e[i].first_top;
@@ -182,27 +204,52 @@ public:
 
             if ((dis[x] != INF) && ((dis[x] + weight) < dis[y]))
             {
-                cout << "Graph contains negative weight cycle" << endl;
+                cout << "Graph contains negative weight cycle!" << endl;
+                return 1;
             }
         }
+        return 0;
+    }
 
-        cout << "Vertex Distance from Source" << endl;
-
+    void PrintDistance(double* dis, double start_top)
+    {
+        cout << "Vertex Distance from Source:" << endl;
         for (int i = 0; i < sum_top; i++)
         {
-            cout << i << "\t\t" << dis[i] << endl;
+            cout << start_top << "-->" << name_top[i] << " = " << dis[i] << endl;
         }
-    
-    
     }
 };
 
+class Window
+{
+private:
+    string file;
+    double start;
+public:
+    Window()
+    {
+        Graph G;
+        cout << "Enter the file where you want to save the work of the Bellman — Ford algorithm" << endl;
+        getline(cin, file);
+        if (file.empty())
+        {
+            file = "test.dot";
+        }
+
+        cout << "Enter the start in the graph" << endl;
+        cin >> start;
+        
+        G.FordBellman(start);
+        G.GraphMakeDot(file);
+    }
+};
+
+
 int main()
 {
-    Graph G;
-    G.PrintGraph();
-    string file = "graphbell.dot";
-    G.GraphDotTopEdge(file);
-    G.FordBellman(0);
+
+    Window Start;
+
     return 0;
 }
